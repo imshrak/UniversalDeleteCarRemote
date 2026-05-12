@@ -13,27 +13,16 @@ local modelDeleteEnabled = false
 local deleteToolEquipped = false
 local modelToolEquipped = false
 
-local deleteTool
-local modelTool
-
 local partBox
 local modelBoxes = {}
 local currentModel
 
 local function getGroupModel(part)
-	if not part then
-		return nil
-	end
+	if not part then return nil end
 
 	local model = part:FindFirstAncestorOfClass("Model")
-
-	if not model then
-		return nil
-	end
-
-	if model == workspace then
-		return nil
-	end
+	if not model then return nil end
+	if model == workspace then return nil end
 
 	local count = 0
 
@@ -89,7 +78,6 @@ local function highlightModel(model)
 	end
 
 	clearModelHighlight()
-
 	currentModel = model
 
 	for _, obj in ipairs(model:GetDescendants()) do
@@ -106,19 +94,42 @@ local function highlightModel(model)
 	end
 end
 
+player.Chatted:Connect(function(msg)
+	msg = msg:lower()
+
+	if msg == "$seatnuke" or msg == "$seatnuke all" then
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+				deleteRemote:FireServer(obj)
+			end
+		end
+	end
+
+	if msg == "$kill all" or msg == "$headnuke" then
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= player then
+				local char = plr.Character
+
+				if char then
+					local head = char:FindFirstChild("Head")
+
+					if head then
+						deleteRemote:FireServer(head)
+					end
+				end
+			end
+		end
+	end
+end)
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "DeleteMenu"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.DisplayOrder = 999999
-
-local parent = gethui and gethui() or game:GetService("CoreGui")
-gui.Parent = parent
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 230, 0, 190)
-frame.Position = UDim2.new(0.5, -115, 0.5, -95)
+frame.Size = UDim2.new(0, 220, 0, 180)
+frame.Position = UDim2.new(0.5, -110, 0.5, -90)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Parent = gui
@@ -133,30 +144,13 @@ stroke.Thickness = 1
 stroke.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -35, 0, 35)
-title.Position = UDim2.new(0, 10, 0, 0)
+title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundTransparency = 1
 title.Text = "Delete Menu"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 16
-title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextColor3 = Color3.new(1,1,1)
 title.Parent = frame
-
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0, 28, 0, 28)
-closeButton.Position = UDim2.new(1, -33, 0, 4)
-closeButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-closeButton.BorderSizePixel = 0
-closeButton.Text = "X"
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 14
-closeButton.TextColor3 = Color3.new(1,1,1)
-closeButton.Parent = frame
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeButton
 
 local function makeButton(text, y)
 	local button = Instance.new("TextButton")
@@ -181,58 +175,50 @@ local toolsButton = makeButton("Get Tools", 45)
 local clickDeleteButton = makeButton("ClickDelete : OFF", 90)
 local modelDeleteButton = makeButton("ModelDelete : OFF", 135)
 
-local function createTools()
-	if not deleteTool then
-		deleteTool = Instance.new("Tool")
-		deleteTool.Name = "DeleteTool"
-		deleteTool.RequiresHandle = false
-		deleteTool.Parent = player.Backpack
-
-		deleteTool.Equipped:Connect(function()
-			deleteToolEquipped = true
-		end)
-
-		deleteTool.Unequipped:Connect(function()
-			deleteToolEquipped = false
-			clearPartHighlight()
-		end)
-
-		deleteTool.Activated:Connect(function()
-			local target = mouse.Target
-
-			if target and target:IsA("BasePart") then
-				deleteRemote:FireServer(target)
-			end
-		end)
-	end
-
-	if not modelTool then
-		modelTool = Instance.new("Tool")
-		modelTool.Name = "DeleteModelTool"
-		modelTool.RequiresHandle = false
-		modelTool.Parent = player.Backpack
-
-		modelTool.Equipped:Connect(function()
-			modelToolEquipped = true
-		end)
-
-		modelTool.Unequipped:Connect(function()
-			modelToolEquipped = false
-			clearModelHighlight()
-		end)
-
-		modelTool.Activated:Connect(function()
-			local model = getGroupModel(mouse.Target)
-
-			if model then
-				deleteRemote:FireServer(model)
-			end
-		end)
-	end
-end
-
 toolsButton.MouseButton1Click:Connect(function()
-	createTools()
+	local deleteTool = Instance.new("Tool")
+	deleteTool.Name = "DeleteTool"
+	deleteTool.RequiresHandle = false
+	deleteTool.Parent = player.Backpack
+
+	deleteTool.Equipped:Connect(function()
+		deleteToolEquipped = true
+	end)
+
+	deleteTool.Unequipped:Connect(function()
+		deleteToolEquipped = false
+		clearPartHighlight()
+	end)
+
+	deleteTool.Activated:Connect(function()
+		local target = mouse.Target
+
+		if target and target:IsA("BasePart") then
+			deleteRemote:FireServer(target)
+		end
+	end)
+
+	local modelTool = Instance.new("Tool")
+	modelTool.Name = "DeleteModelTool"
+	modelTool.RequiresHandle = false
+	modelTool.Parent = player.Backpack
+
+	modelTool.Equipped:Connect(function()
+		modelToolEquipped = true
+	end)
+
+	modelTool.Unequipped:Connect(function()
+		modelToolEquipped = false
+		clearModelHighlight()
+	end)
+
+	modelTool.Activated:Connect(function()
+		local model = getGroupModel(mouse.Target)
+
+		if model then
+			deleteRemote:FireServer(model)
+		end
+	end)
 end)
 
 clickDeleteButton.MouseButton1Click:Connect(function()
@@ -311,24 +297,6 @@ mouse.Button1Down:Connect(function()
 			deleteRemote:FireServer(model)
 		end
 	end
-end)
-
-closeButton.MouseButton1Click:Connect(function()
-	clickDeleteEnabled = false
-	modelDeleteEnabled = false
-
-	clearPartHighlight()
-	clearModelHighlight()
-
-	if deleteTool then
-		deleteTool:Destroy()
-	end
-
-	if modelTool then
-		modelTool:Destroy()
-	end
-
-	gui:Destroy()
 end)
 
 local dragging = false
